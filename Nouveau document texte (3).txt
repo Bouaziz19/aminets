@@ -1,0 +1,134 @@
+import random
+from random import randint
+import numpy as np
+import input as inp
+import copy
+
+class individu:
+# pour initialiser les fonctions
+    def __init__(self):
+        self.sol=self.get_new_indi()
+        self.fo=0
+# cette fonction, il nous aide a afficher le chemin
+    def random_list_sum_fix(self,m, n):
+        arr = [0] * m;
+        for i in range(n):
+            arr[randint(0, n) % m] += 1;
+        return arr
+# contrainte de la capacité du camion qu'il faut respecter
+    def contrent_c(self,sol):
+        i=0
+        for rec in sol:
+            s=0
+            for rec2 in rec:
+                s+=inp.dv[rec2]
+            if s > inp.cc[i]:
+                return  True
+            #   print('s= ',s)
+            i+=1
+        return False
+# trouver la nouveau chemin
+    def get_new_indi(self):
+        sec_v=list(range(inp.nv))
+        fin=True
+        sol = []
+        while fin:
+            sec_c = self.random_list_sum_fix(inp.nc, inp.nv)
+            random.shuffle(sec_v)
+            print()
+            sol = []
+            k = 0
+            for i in range(inp.nc):
+                lis = []
+                for j in range(sec_c[i]):
+                    lis.append(sec_v[k])
+                    k += 1
+                sol.append(lis)
+            fin=self.contrent_c(sol)
+        return sol
+# calculer la fonction objectif d'un chemin courante trouver
+    def calc_fo(self):
+        sol=self.sol
+        ds=inp.distance
+        d=0
+        l=0
+        for i in sol:
+            if len(i)!=0:
+                k = i[0] + 1
+                d += ds[0][k]
+                for j in range(len(i) - 1):
+                    k = i[j] + 1
+                    l = i[j + 1] + 1
+                    d += ds[k][l]
+                d += ds[l][0]
+        self.fo =d
+# la solution voisin trouver en swapon des point de ville de la solution courante
+    def get_voisin(self):
+        sol=self.sol
+        def get_new_indi(self):
+            sec_v = list(range(inp.nv))
+        def get_rnd_index():
+            rn_c01 = random.randint(0, inp.nc - 1)
+            rn_c02 = random.randint(0, inp.nc - 1)
+            rn_v01 = random.randint(0, len(sol[rn_c01]) - 1)
+            rn_v02 = random.randint(0, len(sol[rn_c02]) - 1)
+            v1 = sol[rn_c01][rn_v01]
+            sol[rn_c01][rn_v01] = sol[rn_c02][rn_v02]
+            sol[rn_c02][rn_v02] = v1
+        fin = True
+        while fin:
+            t = True
+            while t:
+                try:
+                    get_rnd_index()
+                    t = False
+                except:
+                    pass
+            fin = self.contrent_c(sol)
+        self.sol = sol
+        self.calc_fo()
+        return self
+# appliquer l'algorithme recuit simulé
+def recuit_simule(ind):
+    N = 11
+    t = 0
+    T0 = 250
+    T = T0
+    Tmin = 35
+    tau = 1000
+    beta = 0.5
+    k = 0
+    ind_courante = copy.deepcopy(ind)
+    ind_courante.calc_fo()
+    d_courante = ind_courante.fo
+    while Tmin < T:
+        ind_voisine = ind.get_voisin()
+        d_voisine= ind_voisine.fo
+        # affichage des resultat finaux
+        print("k=", k)
+        print("cout du chemin de distance du chemin courante ", d_courante, "chemin hamilto courante = ", ind_courante.sol)
+        print("cout du chemin de distance du chemin voisin = ", ind_voisine.fo, "chemin hamilto voisin = ", ind_voisine.sol)
+        if d_voisine <= d_courante:
+             d_courante = d_voisine
+             ind_courante = copy.deepcopy(ind_voisine)
+        else:
+            dE = d_voisine - d_courante
+            if beta > np.exp(-dE / T):
+                pass
+                #  nouveau solution est rejeter
+
+            else:
+                # on accepte la nouvelle solution malgre qu'elle améliore pas la fonction avec la
+                #  probabilité de CM
+                d_courante = d_voisine
+                ind_courante = copy.deepcopy(ind_voisine)
+        # abaisser la temperature =======> refroidissment
+        t += 1
+        T = T0 * np.exp(-t / tau)
+        k += 1
+        print("temperature", T)
+    return ind_courante
+if __name__ == "__main__":
+    ind=individu()
+    ind=recuit_simule(ind)
+    ind.calc_fo()

@@ -1,0 +1,68 @@
+ U(I) is the accumulated delivers at city I ;
+ CITY/1..18/: Q, U;
+! DIST (I, J) is the distance from city I to city J
+ X (I, J) is 0-1 variable: It is 1 if some vehicle
+ travels from city I to J, 0 if none;
+ CXC( CITY, CITY): DIST, X;
+ENDSETS
+DATA:
+! city 1 represent the common depo;
+Q = 11 100 110 20 40 40 55 209 57 49 104 90 80 26 24 80 65;
+! distance from city I to city J is same from city
+J to city I distance from city I to the depot is
+0, since the vehicle has to return to the depot;
+ DIST = ! To City;
+0 18 26 10 14 16 31 6 6 14 17 18 8 13 28 27 46 3
+18 0 9 23 27 29 44 23 27 40 44 45 25 29 20 35 62 20
+26 9 0 33 37 38 36 33 37 43 40 42 38 26 17 25 44 28
+10 23 33 0 4 5 21 12 16 23 28 28 14 19 32 33 52 12
+14 27 37 4 0 6 21 16 16 22 26 27 19 23 39 37 56 13
+16 29 38 5 6 0 15 17 21 30 30 35 20 24 40 39 58 18
+31 44 36 21 21 15 0 33 37 45 49 50 35 40 55 54 73 33
+6 23 33 12 16 17 33 0 6 14 17 18 3 7 20 21 40 3
+6 27 37 16 16 21 37 6 0 8 12 13 7 11 27 25 44 4
+14 40 43 23 22 30 45 14 8 0 2 4 15 15 32 33 50 13
+17 44 40 28 26 30 49 17 12 2 0 3 17 15 30 29 48 15
+18 45 42 28 27 35 50 18 13 4 3 0 18 17 35 30 49 16
+8 25 38 14 19 20 35 3 7 15 17 18 0 5 21 20 39 6
+13 29 26 19 23 24 40 7 11 15 15 17 5 0 16 14 34 10
+28 20 17 32 39 40 55 20 27 32 30 35 21 16 0 8 27 26
+27 35 25 33 37 39 54 21 25 33 29 30 20 14 8 0 21 25
+46 62 44 52 56 58 73 40 44 50 48 49 39 34 27 21 0 44
+3 20 28 12 13 18 33 3 4 13 15 16 6 10 26 25 44 0;
+VEHCLR = 6; 
+! VCAP is the capacity of a vehicle ; 
+ VCAP = 210;
+ENDDATA
+ ! Minimize total travel distance;
+ MIN = @SUM( CXC: DIST * X);
+ ! For each city, except depot....;
+ @FOR( CITY( K)| K #GT# 1:
+ ! a vehicle does not traval inside itself,...;
+ X( K, K) = 0;
+ ! a vehicle must enter it,... ;
+ @SUM( CITY( I)| I #NE# K #AND# ( I #EQ# 1 #OR#
+ Q( I) + Q( K) #LE# VCAP): X( I, K)) = 1;
+ ! a vehicle must leave it after service ;
+ @SUM( CITY( J)| J #NE# K #AND# ( J #EQ# 1 #OR#
+ Q( J) + Q( K) #LE# VCAP): X( K, J)) = 1;
+ ! U( K) is at least amount needed at K but can't 
+ exceed capacity;
+ @BND( Q( K), U( K), VCAP);
+ ! If K follows I, then can bound U( K) - U( I);
+ @FOR( CITY( I)| I #NE# K #AND# I #NE# 1: 
+ U( K) >= U( I) + Q( K) - VCAP + VCAP * 
+ ( X( K, I) + X( I, K)) - ( Q( K) + Q( I))
+ * X( K, I);
+ );
+ ! If K is 1st stop, then U( K) = Q( K);
+ U( K) <= VCAP - ( VCAP - Q( K)) * X( 1, K);
+ ! If K is not 1st stop...;
+ U( K)>= Q( K)+ @SUM( CITY( I)| 
+ I #GT# 1: Q( I) * X( I, K));
+ );
+ ! Make the X's binary;
+ @FOR( CXC: @BIN( X));
+ ! Must send enough vehicles out of depot;
+ @SUM (CITY(J)| J #GT# 1: X (1, J)) >= VEHCLR;
+END
